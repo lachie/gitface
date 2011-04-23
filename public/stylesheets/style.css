@@ -1,0 +1,23 @@
+body {
+  padding: 50px;
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+
+#commits {
+  float: left;
+  width: 400px;
+}
+
+#graph {
+  float: left;
+  width: 200px
+}
+
+td.author {
+  width: 100px;
+}
+
+a {
+  color: #00B7FF;
+}
