@@ -25,14 +25,15 @@ app.configure 'production', ->
 # Routes
 
 app.get '/', (req, res) ->
-  getHistory (commits, err) ->
+  getHistory limit: 100, (history, err) ->
     res.render 'index'
-      title: "hi"
-      commits: commits
+      title: "hix"
+      commits: history.commits
+      committers: history.committers
 
 app.get '/commits.json', (req, res) ->
-  getHistory (commits, err) ->
-    res.send(commits)
+  getHistory limit: 100, (history, err) ->
+    res.send(history)
 
 # Only listen on $ node app.js
 

@@ -1,8 +1,15 @@
 child_process = require('child_process')
 {LogBuffer} = require('./log_buffer')
+_ = require('underscore')
 
 
-module.exports.getHistory = (callback, options={}) ->
+module.exports.getHistory = (callback) ->
+
+  if _.isFunction callback
+    options = {}
+  else
+    options = callback
+    callback = arguments[1]
 
   format = "--pretty=format:%H\01%e\01%aN\01%cN\01%s\01%P\01%at"
 
@@ -30,9 +37,11 @@ module.exports.getHistory = (callback, options={}) ->
     mattallen                 : 'matt',
     DylanFM                   : 'dylan'
 
-
+  committers = {}
   commitList = []
   commitIndex = 0
+
+  commitReverseIndex = {}
 
   logbuffer = new LogBuffer
 
@@ -44,7 +53,10 @@ module.exports.getHistory = (callback, options={}) ->
       when 1
         commit.encoding = data
       when 2
-        commit.author = nameMap[ data ]
+        commit.author = author = nameMap[ data ]
+        committers[author] ||= 0
+        committers[author] +=  1
+
       when 3
         commit.comitter = data
       when 4
@@ -55,6 +67,9 @@ module.exports.getHistory = (callback, options={}) ->
         commit.tv = parseInt(data)
 
   logbuffer.on 'record', (i) ->
+    commit = commitList[commitIndex]
+    commitReverseIndex[commit.sha] = index: commitIndex, author: commit.author
+
     commitIndex += 1
 
   git.stdout.on 'data', (data) ->
@@ -65,4 +80,4 @@ module.exports.getHistory = (callback, options={}) ->
 
   git.on 'exit', (code) ->
     logbuffer.finish()
-    callback( commitList, code == 0 )
+    callback?( {commits: commitList, committers: committers, commitShaIndex: commitReverseIndex}, code == 0 )
