@@ -4,11 +4,6 @@ body {
 }
 
 
-#commits {
-  float: left;
-  width: 600px;
-}
-
 #graph {
   float: left;
   width: 200px
@@ -18,8 +13,30 @@ body {
   stroke: black;
 }
 
+#commits {
+  float: left;
+  width: 750px;
+}
+
+#commits table {
+  table-layout: fixed;
+  width: 100%;
+  border: 1px solid black;
+}
+
 td.author {
-  width: 100px;
+  width: 75px;
+}
+
+td.subject {
+  width: 80%;
+  text-overflow: ellipsis;
+  overflow: hidden;
+	white-space: nowrap;
+}
+
+td.sha {
+  width: 75px;
 }
 
 a {
