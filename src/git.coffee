@@ -81,3 +81,55 @@ module.exports.getHistory = (callback) ->
   git.on 'exit', (code) ->
     logbuffer.finish()
     callback?( {commits: commitList, committers: committers, commitShaIndex: commitReverseIndex}, code == 0 )
+
+
+
+
+
+module.exports.getRefs = (callback) ->
+
+  if _.isFunction callback
+    options = {}
+  else
+    options = callback
+    callback = arguments[1]
+
+  args = ['show-ref']
+
+  git = child_process.spawn "git", args,
+    cwd: "#{process.env['HOME']}/dev/plus2/davidson"
+
+  refs = {}
+  currentKey = null
+
+
+
+  logbuffer = new LogBuffer fieldSep: 0x20, recordSep: 0x0a
+
+  logbuffer.on 'field', (data, i) ->
+    switch i
+      when 0
+        currentKey = data
+      when 1
+        refs[currentKey] = data
+        currentKey = null
+
+
+  logbuffer.on 'record', (i) ->
+
+
+  git.stdout.on 'data', (data) ->
+    logbuffer.add data
+
+  git.stderr.on 'data', (data) ->
+    console.log('stderr: ' + data)
+
+  git.on 'exit', (code) ->
+    logbuffer.finish()
+    callback?( {refs: refs}, code == 0 )
+
+
+unless module.parent?
+  module.exports.getRefs (data) ->
+    console.log "data", data
+
