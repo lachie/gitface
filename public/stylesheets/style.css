@@ -6,12 +6,16 @@ body {
 
 #commits {
   float: left;
-  width: 400px;
+  width: 600px;
 }
 
 #graph {
   float: left;
   width: 200px
+}
+
+#graph line.link {
+  stroke: black;
 }
 
 td.author {
