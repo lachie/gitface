@@ -1,9 +1,10 @@
 child_process = require('child_process')
 {LogBuffer} = require('./log_buffer')
 _ = require('underscore')
+{waterfall} = require('async')
 
 
-module.exports.getHistory = (callback) ->
+module.exports.getHistory = getHistory = (callback) ->
 
   if _.isFunction callback
     options = {}
@@ -13,12 +14,12 @@ module.exports.getHistory = (callback) ->
 
   format = "--pretty=format:%H\01%e\01%aN\01%cN\01%s\01%P\01%at"
 
-  args = [ 'log', '--date-order', '-z', format, '--children' ]
+  args = [ 'log', '--date-order', '-z', format, '--children', '--all' ]
 
   if options.limit
     args.push "-#{options.limit}"
 
-  args.push 'HEAD'
+  # args.push 'HEAD'
 
   git = child_process.spawn "git", args,
     cwd: "#{process.env['HOME']}/dev/plus2/davidson"
@@ -43,6 +44,8 @@ module.exports.getHistory = (callback) ->
 
   commitReverseIndex = {}
 
+  refs = options.refs
+
   logbuffer = new LogBuffer
 
   logbuffer.on 'field', (data, i) ->
@@ -50,6 +53,8 @@ module.exports.getHistory = (callback) ->
     switch i
       when 0
         commit.sha = data
+        if refs
+          commit.refs = refs[commit.sha]
       when 1
         commit.encoding = data
       when 2
@@ -86,7 +91,7 @@ module.exports.getHistory = (callback) ->
 
 
 
-module.exports.getRefs = (callback) ->
+module.exports.getRefs = getRefs = (callback) ->
 
   if _.isFunction callback
     options = {}
@@ -94,7 +99,7 @@ module.exports.getRefs = (callback) ->
     options = callback
     callback = arguments[1]
 
-  args = ['show-ref']
+  args = ['show-ref', '--dereference']
 
   git = child_process.spawn "git", args,
     cwd: "#{process.env['HOME']}/dev/plus2/davidson"
@@ -106,13 +111,28 @@ module.exports.getRefs = (callback) ->
 
   logbuffer = new LogBuffer fieldSep: 0x20, recordSep: 0x0a
 
+  refRe = /^refs\/([^\/]+)\/(.*)$/
+
+  refTypeMap =
+    remotes: 'remote'
+    tags: 'tag'
+    heads: 'head'
+
+
   logbuffer.on 'field', (data, i) ->
     switch i
       when 0
         currentKey = data
       when 1
-        refs[currentKey] = data
+        if m = data.match(refRe)
+          ref = ref: m[2], type: (refTypeMap[m[1]] || m[1])
+        else
+          ref = ref: data
+
+        currentRefs = refs[currentKey] ||= []
+        currentRefs.push ref
         currentKey = null
+
 
 
   logbuffer.on 'record', (i) ->
@@ -129,7 +149,30 @@ module.exports.getRefs = (callback) ->
     callback?( {refs: refs}, code == 0 )
 
 
+module.exports.getHistoryWithRefs = (outerCallback) ->
+  if _.isFunction outerCallback
+    options = {}
+  else
+    options = outerCallback
+    outerCallback = arguments[1]
+
+  waterfall [
+    (callback) ->
+      getRefs (data, err) ->
+        callback(null, data)
+
+    (data, callback) ->
+      historyOptions = refs: data.refs, limit: options.limit
+
+      getHistory historyOptions, (data, err) ->
+        callback(null, data)
+
+    (data, callback) ->
+      outerCallback(data)
+  ]
+
+
 unless module.parent?
-  module.exports.getRefs (data) ->
+  module.exports.getHistoryWithRefs limit: 100, (data) ->
     console.log "data", data
 
