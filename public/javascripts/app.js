@@ -1,9 +1,12 @@
 (function() {
   d3.json("/commits.json", function(data) {
-    var commitOffsets, committerReverseIndex, committers, height, links, margin, radius, radius_2, shows, topTop, vis, width, x, y, _i, _j, _ref, _ref2, _results, _results2;
+    var commitHeight, commitHeight_2, commits, committerReverseIndex, committers, graphWidth, height, laneWidth, laneWidth_2, lanes, links, margin, nameTrough, radius, vis, width, x, y, _i, _ref, _results;
     margin = 10;
-    width = $("body #graph").width() - margin * 2;
-    height = $("body #commits").height();
+    nameTrough = 50;
+    width = $(window).width() - margin * 2;
+    graphWidth = 200;
+    height = data.commits.length * 32;
+    console.log(width, height);
     committerReverseIndex = {};
     committers = _.map(data.committers, function(count, name) {
       return [count, name];
@@ -15,34 +18,36 @@
       committerReverseIndex[c[1]] = i;
       return c[1];
     });
-    topTop = $('#commits table tbody tr#commit-0').offset().top;
-    commitOffsets = [];
-    $('#commits table tbody tr').each(function() {
-      var index, row;
-      row = $(this);
-      index = row.data('index');
-      if (index != null) {
-        return commitOffsets[parseInt(index)] = row.offset().top - topTop + (row.height() / 2);
-      }
-    });
-    console.log(commitOffsets);
     x = d3.scale.ordinal().domain((function() {
       _results = [];
       for (var _i = 0, _ref = committers.length; 0 <= _ref ? _i < _ref : _i > _ref; 0 <= _ref ? _i += 1 : _i -= 1){ _results.push(_i); }
       return _results;
-    }).apply(this, arguments)).rangeBands([0, width], .2);
-    y = d3.scale.ordinal().domain((function() {
-      _results2 = [];
-      for (var _j = 0, _ref2 = data.commits.length; 0 <= _ref2 ? _j < _ref2 : _j > _ref2; 0 <= _ref2 ? _j += 1 : _j -= 1){ _results2.push(_j); }
-      return _results2;
-    }).apply(this, arguments)).range(commitOffsets);
+    }).apply(this, arguments)).rangeBands([0, graphWidth], .2);
+    y = d3.scale.linear().domain([0, data.commits.length + 1]).range([nameTrough, height + nameTrough]);
     $("body #graph").empty();
     vis = d3.select("body #graph").append("svg:svg").attr("width", width + margin * 2).attr("height", height).append("svg:g").attr("transform", "translate(" + margin + ",0)");
+    vis.append('svn:line').attr("stroke", "black").attr('x1', 0).attr('y1', nameTrough).attr('x2', graphWidth).attr('y2', nameTrough);
     vis.append("svn:rect").attr("stroke", "black").attr("width", width).attr("height", height);
-    radius = 6;
-    radius_2 = Math.floor(radius / 2);
+    laneWidth = x(2) - x(1);
+    laneWidth_2 = laneWidth / 2;
+    lanes = vis.selectAll('g.lane').data(committers).enter().append('svg:g').attr('class', 'lane').attr('transform', function(d, i) {
+      return "translate(" + (x(i) - laneWidth_2) + ",0)";
+    });
+    lanes.append('svg:rect').attr('fill', 'black').attr('fill-opacity', function(d, i) {
+      if (i % 2) {
+        return 0.2;
+      } else {
+        return 0.1;
+      }
+    }).attr('x', 0).attr('y', 0).attr('width', laneWidth).attr('height', height);
+    lanes.append('svg:text').attr('fill-opacity', 0.5).attr('y', -laneWidth_2).text(function(d) {
+      return d;
+    }).attr('alignment-baseline', 'middle').attr('transform', 'rotate(90)');
+    commitHeight = x(2) - x(1);
+    commitHeight_2 = commitHeight / 2;
+    radius = 3;
     links = [];
-    shows = vis.selectAll("g.commit").data(data.commits).enter().append("svg:g").each(function(d, i) {
+    commits = vis.selectAll("g.commit").data(data.commits).enter().append("svg:g").each(function(d, i) {
       var from, link, sha, to, _i, _len, _ref, _results;
       from = data.commitShaIndex[d.sha];
       _ref = d.parents;
@@ -57,12 +62,24 @@
         _results.push((to = data.commitShaIndex[sha]) ? (link.x2 = committerReverseIndex[to.author], link.y2 = to.index) : (link.x2 = committerReverseIndex[from.author], link.y2 = data.commits.length - 1));
       }
       return _results;
-    }).attr('class', 'commit').attr("transform", function(d, i) {
+    }).attr('class', 'commit').attr('width', width).attr("transform", function(d, i) {
       var xi;
       xi = committerReverseIndex[d.author];
-      return "translate(" + (x(xi)) + "," + (y(i)) + ")";
+      return "translate(0," + (y(i)) + ")";
+    }).on('mouseover', function(d, i) {
+      return $("#hi-" + i).attr('visibility', 'visible');
+    }).on('mouseout', function(d, i) {
+      return $("#hi-" + i).attr('visibility', 'hidden');
     });
-    shows.append('svg:rect').attr("x", -radius_2).attr("y", -radius_2).attr("width", radius).attr("height", radius);
+    commits.append('svg:circle').attr('stroke', 'black').attr('fill', 'none').attr("cx", function(d, i) {
+      return x(committerReverseIndex[d.author]);
+    }).attr("cy", 0).attr("r", radius);
+    commits.append('svg:text').text(function(d, i) {
+      return d.subject;
+    }).attr('width', 200).attr('alignment-baseline', 'middle').attr('x', graphWidth);
+    commits.append('svg:rect').attr('id', function(d, i) {
+      return "hi-" + i;
+    }).attr('visibility', 'hidden').attr('fill', 'red').attr('opacity', 0.25).attr('y', -commitHeight_2).attr('width', width).attr('height', commitHeight);
     return vis.selectAll('line.link').data(links).enter().append('svg:line').attr('class', 'link').attr('x1', function(d) {
       return x(d.x1);
     }).attr('y1', function(d) {
