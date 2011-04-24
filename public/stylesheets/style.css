@@ -1,5 +1,6 @@
 body {
-  padding: 50px;
+  padding: 0;
+  margin: 0;
   font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
 }
 
@@ -19,13 +20,29 @@ body {
 }
 
 #commits table {
+  font-size: .8em;
   table-layout: fixed;
   width: 100%;
-  border: 1px solid black;
+  // border: 1px solid black;
 }
 
 td.author {
   width: 75px;
+}
+
+td.subject .ref {
+  font-size: .6em;
+  border: 1px solid #aaa;
+}
+
+td.subject .ref-head {
+  background: #0f0;
+}
+td.subject .ref-remote {
+  background: #88f;
+}
+td.subject .ref-tag {
+  background: #ff0;
 }
 
 td.subject {
