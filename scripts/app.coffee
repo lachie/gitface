@@ -1,8 +1,12 @@
 d3.json "/commits.json", (data) ->
   margin = 10
+  nameTrough = 50
 
-  width  = $("body #graph").width() - margin*2
-  height = $("body #commits").height()
+  width  = $(window).width() - margin*2
+  graphWidth = 200
+  height = data.commits.length * 32
+
+  console.log width, height
 
   committerReverseIndex = {}
 
@@ -10,20 +14,8 @@ d3.json "/commits.json", (data) ->
   committers = _.sortBy( committers  , (c) -> -c[0] )
   committers = _.map(committers     , (c,i) -> committerReverseIndex[c[1]] = i; c[1])
 
-  topTop = $('#commits table tbody tr#commit-0').offset().top
-
-  commitOffsets = []
-  $('#commits table tbody tr').each ->
-    row = $(@)
-
-    index = row.data('index')
-    if index?
-      commitOffsets[parseInt(index)] = row.offset().top - topTop + (row.height()/2)
-
-  console.log commitOffsets
-
-  x = d3.scale.ordinal().domain([0...committers.length  ]).rangeBands([0, width], .2)
-  y = d3.scale.ordinal().domain([0...data.commits.length]).range(commitOffsets)
+  x = d3.scale.ordinal().domain([0...committers.length  ]).rangeBands([0, graphWidth], .2)
+  y = d3.scale.linear().domain([0,data.commits.length+1 ]).range([nameTrough,height+nameTrough])
 
   $("body #graph").empty()
 
@@ -34,16 +26,56 @@ d3.json "/commits.json", (data) ->
   .append("svg:g")
   .attr("transform", "translate(#{margin},0)")
 
+  vis.append('svn:line')
+    .attr("stroke", "black")
+    .attr('x1',0)
+    .attr('y1',nameTrough)
+    .attr('x2',graphWidth)
+    .attr('y2',nameTrough)
+
   vis.append("svn:rect")
     .attr("stroke", "black")
     .attr("width", width)
     .attr("height", height)
 
-  radius = 6
-  radius_2 = Math.floor(radius/2)
+
+  # lanes
+
+  laneWidth = x(2) - x(1)
+  laneWidth_2 = laneWidth/2
+
+  lanes = vis.selectAll('g.lane')
+     .data(committers)
+     .enter().append('svg:g')
+     .attr('class','lane')
+     .attr('transform', (d,i) -> "translate(#{x(i)-laneWidth_2},0)")
+
+  lanes.append('svg:rect')
+     .attr('fill','black')
+     .attr('fill-opacity',(d,i) -> if i%2 then 0.2 else 0.1)
+     .attr('x', 0)
+     .attr('y', 0)
+     .attr('width', laneWidth)
+     .attr('height', height)
+
+  lanes.append('svg:text')
+    .attr('fill-opacity', 0.5)
+    .attr('y', -laneWidth_2)
+    .text((d) -> d)
+    .attr('alignment-baseline', 'middle')
+    .attr('transform', 'rotate(90)')
+
+
+  # commits
+  commitHeight = x(2) - x(1)
+  commitHeight_2 = commitHeight / 2
+
+
+
+  radius = 3
 
   links = []
-  shows = vis.selectAll("g.commit")
+  commits = vis.selectAll("g.commit")
               .data(data.commits)
               .enter().append("svg:g")
 
@@ -63,18 +95,40 @@ d3.json "/commits.json", (data) ->
 
             )
             .attr('class', 'commit')
+            .attr('width', width)
             .attr("transform", (d, i) ->
               xi = committerReverseIndex[d.author]
-              "translate(#{x(xi)},#{y(i)})"
+              "translate(0,#{y(i)})"
+            )
+            .on( 'mouseover', (d, i) ->
+              $("#hi-#{i}").attr('visibility', 'visible')
+            )
+            .on( 'mouseout', (d, i) ->
+              $("#hi-#{i}").attr('visibility', 'hidden')
             )
 
 
-  shows.append('svg:rect')
-       .attr("x", -radius_2)
-       .attr("y", -radius_2)
-       .attr("width"  , radius)
-       .attr("height" , radius)
+  commits.append('svg:circle')
+       .attr('stroke','black')
+       .attr('fill','none')
+       .attr("cx", (d, i) -> x(committerReverseIndex[d.author]))
+       .attr("cy", 0)
+       .attr("r"  , radius)
 
+  commits.append('svg:text')
+    .text( (d, i) -> d.subject )
+    .attr('width', 200)
+    .attr('alignment-baseline', 'middle')
+    .attr('x', graphWidth)
+
+  commits.append('svg:rect')
+    .attr('id', (d, i) -> "hi-#{i}")
+    .attr('visibility', 'hidden')
+    .attr('fill', 'red')
+    .attr('opacity', 0.25)
+    .attr('y', -commitHeight_2)
+    .attr('width', width)
+    .attr('height', commitHeight)
 
   vis.selectAll('line.link')
       .data(links)

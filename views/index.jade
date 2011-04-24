@@ -1,10 +1,2 @@
 h1= title
 div#graph hi
-div#commits
-  table
-    tbody
-      - each commit,i in commits
-        tr(id="commit-"+i, "data-index": i)
-          td.author= commit.author
-          td.subject= commit.subject
-          td.sha= commit.sha.slice(0,7)
