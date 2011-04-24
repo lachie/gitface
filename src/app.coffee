@@ -1,9 +1,11 @@
 # Module dependencies.
 
+{parallel} = require('async')
 express = require('express')
 app = module.exports = express.createServer()
 
-{getHistory} = require('./git')
+
+{getHistoryWithRefs, getHistory} = require('./git')
 
 # Configuration
 
@@ -25,7 +27,7 @@ app.configure 'production', ->
 # Routes
 
 app.get '/', (req, res) ->
-  getHistory limit: 100, (history, err) ->
+  getHistoryWithRefs limit: 100, (history, err) ->
     res.render 'index'
       title: "hix"
       commits: history.commits
