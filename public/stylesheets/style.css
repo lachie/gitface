@@ -14,46 +14,8 @@ body {
   stroke: black;
 }
 
-#commits {
-  float: left;
-  width: 750px;
-}
-
-#commits table {
-  font-size: .8em;
-  table-layout: fixed;
-  width: 100%;
-  // border: 1px solid black;
-}
-
-td.author {
-  width: 75px;
-}
-
-td.subject .ref {
-  font-size: .6em;
-  border: 1px solid #aaa;
-}
-
-td.subject .ref-head {
-  background: #0f0;
-}
-td.subject .ref-remote {
-  background: #88f;
-}
-td.subject .ref-tag {
-  background: #ff0;
-}
-
-td.subject {
-  width: 80%;
-  text-overflow: ellipsis;
-  overflow: hidden;
-	white-space: nowrap;
-}
-
-td.sha {
-  width: 75px;
+#graph g.lane.highlighted rect {
+  fill: red;
 }
 
 a {
