@@ -95,10 +95,7 @@ d3.json "/commits.json", (data) ->
             )
             .attr('class', 'commit')
             .attr('width', width)
-            .attr("transform", (d, i) ->
-              xi = committerReverseIndex[d.author]
-              "translate(0,#{y(i)})"
-            )
+            .attr("transform", (d, i) -> "translate(0,#{y(i)})")
             .on( 'mouseover', (d, i) ->
               $("#lane-#{d.author}").attr('class', 'lane highlighted')
               $("#lane-#{d.author} rect").attr('fill', 'red')
@@ -111,12 +108,26 @@ d3.json "/commits.json", (data) ->
             )
 
 
-  commits.append('svg:circle')
-       .attr('stroke','black')
-       .attr('fill','none')
-       .attr("cx", (d, i) -> x(committerReverseIndex[d.author]))
-       .attr("cy", 0)
-       .attr("r"  , radius)
+  commit = commits.append('svg:g')
+             .attr('transform', (d, i) -> "translate(#{x(committerReverseIndex[d.author])},0)") #"
+
+  commit.append('svg:circle')
+           .attr('stroke','black')
+           .attr('fill','none')
+           .attr("cx", 0)
+           .attr("cy", 0)
+           .attr("r"  , radius)
+
+  commit.append('svg:text')
+        .attr('alignment-baseline', 'middle')
+        .attr('x', 10)
+        .attr('font-size', '75%')
+        .attr('opacity', 0.5)
+        .attr('transform', 'rotate(30)')
+        .text((d,i) ->
+          # ref.type
+          _.map( d.refs, (ref) -> ref.ref ).join(',')
+        )
 
 
   now = Math.floor( new Date().getTime() / 1000 )
@@ -133,7 +144,7 @@ d3.json "/commits.json", (data) ->
 
   commits.append('svg:text')
     .text(dateToString)
-    .attr('width', 100)
+    .attr('width', 50)
     .attr('alignment-baseline', 'middle')
     .attr('x', graphWidth)
 
@@ -142,7 +153,7 @@ d3.json "/commits.json", (data) ->
     .text( (d, i) -> d.subject )
     .attr('width', 200)
     .attr('alignment-baseline', 'middle')
-    .attr('x', graphWidth+100)
+    .attr('x', graphWidth+50)
 
 
   commits.append('svg:rect')
@@ -172,5 +183,4 @@ d3.json "/commits.json", (data) ->
   $(window).scroll $.throttle 100, (e) ->
       graphTop = $(e.target).scrollTop()-top
       graphTop = 0 if graphTop < 0
-      console.log graphTop
       d3.selectAll("text.name").transition().attr('x', graphTop+10)

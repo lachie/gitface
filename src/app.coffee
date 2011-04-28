@@ -34,7 +34,7 @@ app.get '/', (req, res) ->
       committers: history.committers
 
 app.get '/commits.json', (req, res) ->
-  getHistory limit: 100, (history, err) ->
+  getHistoryWithRefs limit: 100, (history, err) ->
     res.send(history)
 
 # Only listen on $ node app.js
