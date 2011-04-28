@@ -6,8 +6,6 @@ d3.json "/commits.json", (data) ->
   graphWidth = 200
   height = data.commits.length * 32
 
-  console.log width, height
-
   committerReverseIndex = {}
 
   committers = _.map( data.committers, (count, name) -> [count, name] )
@@ -42,13 +40,14 @@ d3.json "/commits.json", (data) ->
   # lanes
 
   laneWidth = x(2) - x(1)
-  laneWidth_2 = laneWidth/2
+  laneWidth_2 = laneWidth / 2
 
   lanes = vis.selectAll('g.lane')
      .data(committers)
      .enter().append('svg:g')
      .attr('class','lane')
-     .attr('transform', (d,i) -> "translate(#{x(i)-laneWidth_2},0)")
+     .attr('transform', (d,i) -> "translate(#{x(i)-laneWidth_2}, 0)") #"
+     .attr('id', (d, i) -> "lane-#{d}")
 
   lanes.append('svg:rect')
      .attr('fill','black')
@@ -58,19 +57,19 @@ d3.json "/commits.json", (data) ->
      .attr('width', laneWidth)
      .attr('height', height)
 
-  lanes.append('svg:text')
-    .attr('fill-opacity', 0.5)
-    .attr('y', -laneWidth_2)
-    .text((d) -> d)
-    .attr('alignment-baseline', 'middle')
-    .attr('transform', 'rotate(90)')
+  names = lanes.append('svg:text')
+            .attr('class', 'name')
+            .attr('fill-opacity', 0.5)
+            .attr('y', -laneWidth_2)
+            .attr('x', 0)
+            .text((d) -> d)
+            .attr('alignment-baseline', 'middle')
+            .attr('transform', 'rotate(90)')
 
 
   # commits
   commitHeight = x(2) - x(1)
   commitHeight_2 = commitHeight / 2
-
-
 
   radius = 3
 
@@ -101,9 +100,13 @@ d3.json "/commits.json", (data) ->
               "translate(0,#{y(i)})"
             )
             .on( 'mouseover', (d, i) ->
+              $("#lane-#{d.author}").attr('class', 'lane highlighted')
+              $("#lane-#{d.author} rect").attr('fill', 'red')
               $("#hi-#{i}").attr('visibility', 'visible')
             )
             .on( 'mouseout', (d, i) ->
+              $("#lane-#{d.author}").attr('class', 'lane')
+              $("#lane-#{d.author} rect").attr('fill', 'black')
               $("#hi-#{i}").attr('visibility', 'hidden')
             )
 
@@ -115,11 +118,32 @@ d3.json "/commits.json", (data) ->
        .attr("cy", 0)
        .attr("r"  , radius)
 
+
+  now = Math.floor( new Date().getTime() / 1000 )
+  dateToString = (d) ->
+    delta = (now-d.tv)
+    day   = 3600*24
+
+    if delta < 3600
+      "#{Math.floor delta / 60}m"
+    else if delta < day
+      "#{Math.floor delta / 3600}h"
+    else
+      "#{Math.floor delta / day}d"
+
+  commits.append('svg:text')
+    .text(dateToString)
+    .attr('width', 100)
+    .attr('alignment-baseline', 'middle')
+    .attr('x', graphWidth)
+
+
   commits.append('svg:text')
     .text( (d, i) -> d.subject )
     .attr('width', 200)
     .attr('alignment-baseline', 'middle')
-    .attr('x', graphWidth)
+    .attr('x', graphWidth+100)
+
 
   commits.append('svg:rect')
     .attr('id', (d, i) -> "hi-#{i}")
@@ -134,7 +158,18 @@ d3.json "/commits.json", (data) ->
       .data(links)
       .enter().append('svg:line')
       .attr('class', 'link')
+      .attr('stroke','black')
       .attr('x1', (d) -> x(d.x1))
       .attr('y1', (d) -> y(d.y1))
       .attr('x2', (d) -> x(d.x2))
       .attr('y2', (d) -> y(d.y2))
+
+
+  graph = $('#graph')
+  top = graph.offset().top
+  names = $('g.lane text.name')
+
+  $(window).scroll $.throttle 100, (e) ->
+      graphTop = $(e.target).scrollTop()-top
+      if graphTop > 0
+        d3.selectAll("text.name").transition().attr('x', graphTop)

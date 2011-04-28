@@ -1,12 +1,11 @@
 (function() {
   d3.json("/commits.json", function(data) {
-    var commitHeight, commitHeight_2, commits, committerReverseIndex, committers, graphWidth, height, laneWidth, laneWidth_2, lanes, links, margin, nameTrough, radius, vis, width, x, y, _i, _ref, _results;
+    var commitHeight, commitHeight_2, commits, committerReverseIndex, committers, dateToString, graph, graphWidth, height, laneWidth, laneWidth_2, lanes, links, margin, nameTrough, names, now, radius, top, vis, width, x, y, _i, _ref, _results;
     margin = 10;
     nameTrough = 50;
     width = $(window).width() - margin * 2;
     graphWidth = 200;
     height = data.commits.length * 32;
-    console.log(width, height);
     committerReverseIndex = {};
     committers = _.map(data.committers, function(count, name) {
       return [count, name];
@@ -31,7 +30,9 @@
     laneWidth = x(2) - x(1);
     laneWidth_2 = laneWidth / 2;
     lanes = vis.selectAll('g.lane').data(committers).enter().append('svg:g').attr('class', 'lane').attr('transform', function(d, i) {
-      return "translate(" + (x(i) - laneWidth_2) + ",0)";
+      return "translate(" + (x(i) - laneWidth_2) + ", 0)";
+    }).attr('id', function(d, i) {
+      return "lane-" + d;
     });
     lanes.append('svg:rect').attr('fill', 'black').attr('fill-opacity', function(d, i) {
       if (i % 2) {
@@ -40,7 +41,7 @@
         return 0.1;
       }
     }).attr('x', 0).attr('y', 0).attr('width', laneWidth).attr('height', height);
-    lanes.append('svg:text').attr('fill-opacity', 0.5).attr('y', -laneWidth_2).text(function(d) {
+    names = lanes.append('svg:text').attr('class', 'name').attr('fill-opacity', 0.5).attr('y', -laneWidth_2).attr('x', 0).text(function(d) {
       return d;
     }).attr('alignment-baseline', 'middle').attr('transform', 'rotate(90)');
     commitHeight = x(2) - x(1);
@@ -67,20 +68,38 @@
       xi = committerReverseIndex[d.author];
       return "translate(0," + (y(i)) + ")";
     }).on('mouseover', function(d, i) {
+      $("#lane-" + d.author).attr('class', 'lane highlighted');
+      $("#lane-" + d.author + " rect").attr('fill', 'red');
       return $("#hi-" + i).attr('visibility', 'visible');
     }).on('mouseout', function(d, i) {
+      $("#lane-" + d.author).attr('class', 'lane');
+      $("#lane-" + d.author + " rect").attr('fill', 'black');
       return $("#hi-" + i).attr('visibility', 'hidden');
     });
     commits.append('svg:circle').attr('stroke', 'black').attr('fill', 'none').attr("cx", function(d, i) {
       return x(committerReverseIndex[d.author]);
     }).attr("cy", 0).attr("r", radius);
+    now = Math.floor(new Date().getTime() / 1000);
+    dateToString = function(d) {
+      var day, delta;
+      delta = now - d.tv;
+      day = 3600 * 24;
+      if (delta < 3600) {
+        return "" + (Math.floor(delta / 60)) + "m";
+      } else if (delta < day) {
+        return "" + (Math.floor(delta / 3600)) + "h";
+      } else {
+        return "" + (Math.floor(delta / day)) + "d";
+      }
+    };
+    commits.append('svg:text').text(dateToString).attr('width', 100).attr('alignment-baseline', 'middle').attr('x', graphWidth);
     commits.append('svg:text').text(function(d, i) {
       return d.subject;
-    }).attr('width', 200).attr('alignment-baseline', 'middle').attr('x', graphWidth);
+    }).attr('width', 200).attr('alignment-baseline', 'middle').attr('x', graphWidth + 100);
     commits.append('svg:rect').attr('id', function(d, i) {
       return "hi-" + i;
     }).attr('visibility', 'hidden').attr('fill', 'red').attr('opacity', 0.25).attr('y', -commitHeight_2).attr('width', width).attr('height', commitHeight);
-    return vis.selectAll('line.link').data(links).enter().append('svg:line').attr('class', 'link').attr('x1', function(d) {
+    vis.selectAll('line.link').data(links).enter().append('svg:line').attr('class', 'link').attr('stroke', 'black').attr('x1', function(d) {
       return x(d.x1);
     }).attr('y1', function(d) {
       return y(d.y1);
@@ -89,5 +108,15 @@
     }).attr('y2', function(d) {
       return y(d.y2);
     });
+    graph = $('#graph');
+    top = graph.offset().top;
+    names = $('g.lane text.name');
+    return $(window).scroll($.throttle(100, function(e) {
+      var graphTop;
+      graphTop = $(e.target).scrollTop() - top;
+      if (graphTop > 0) {
+        return d3.selectAll("text.name").transition().attr('x', graphTop);
+      }
+    }));
   });
 }).call(this);
