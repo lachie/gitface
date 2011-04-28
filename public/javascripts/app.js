@@ -1,6 +1,6 @@
 (function() {
   d3.json("/commits.json", function(data) {
-    var commitHeight, commitHeight_2, commits, committerReverseIndex, committers, dateToString, graph, graphWidth, height, laneWidth, laneWidth_2, lanes, links, margin, nameTrough, names, now, radius, top, vis, width, x, y, _i, _ref, _results;
+    var commit, commitHeight, commitHeight_2, commits, committerReverseIndex, committers, dateToString, graph, graphWidth, height, laneWidth, laneWidth_2, lanes, links, margin, nameTrough, names, now, radius, top, vis, width, x, y, _i, _ref, _results;
     margin = 10;
     nameTrough = 50;
     width = $(window).width() - margin * 2;
@@ -64,8 +64,6 @@
       }
       return _results;
     }).attr('class', 'commit').attr('width', width).attr("transform", function(d, i) {
-      var xi;
-      xi = committerReverseIndex[d.author];
       return "translate(0," + (y(i)) + ")";
     }).on('mouseover', function(d, i) {
       $("#lane-" + d.author).attr('class', 'lane highlighted');
@@ -76,9 +74,15 @@
       $("#lane-" + d.author + " rect").attr('fill', 'black');
       return $("#hi-" + i).attr('visibility', 'hidden');
     });
-    commits.append('svg:circle').attr('stroke', 'black').attr('fill', 'none').attr("cx", function(d, i) {
-      return x(committerReverseIndex[d.author]);
-    }).attr("cy", 0).attr("r", radius);
+    commit = commits.append('svg:g').attr('transform', function(d, i) {
+      return "translate(" + (x(committerReverseIndex[d.author])) + ",0)";
+    });
+    commit.append('svg:circle').attr('stroke', 'black').attr('fill', 'none').attr("cx", 0).attr("cy", 0).attr("r", radius);
+    commit.append('svg:text').attr('alignment-baseline', 'middle').attr('x', 10).attr('font-size', '75%').attr('opacity', 0.5).attr('transform', 'rotate(30)').text(function(d, i) {
+      return _.map(d.refs, function(ref) {
+        return ref.ref;
+      }).join(',');
+    });
     now = Math.floor(new Date().getTime() / 1000);
     dateToString = function(d) {
       var day, delta;
@@ -92,10 +96,10 @@
         return "" + (Math.floor(delta / day)) + "d";
       }
     };
-    commits.append('svg:text').text(dateToString).attr('width', 100).attr('alignment-baseline', 'middle').attr('x', graphWidth);
+    commits.append('svg:text').text(dateToString).attr('width', 50).attr('alignment-baseline', 'middle').attr('x', graphWidth);
     commits.append('svg:text').text(function(d, i) {
       return d.subject;
-    }).attr('width', 200).attr('alignment-baseline', 'middle').attr('x', graphWidth + 100);
+    }).attr('width', 200).attr('alignment-baseline', 'middle').attr('x', graphWidth + 50);
     commits.append('svg:rect').attr('id', function(d, i) {
       return "hi-" + i;
     }).attr('visibility', 'hidden').attr('fill', 'red').attr('opacity', 0.25).attr('y', -commitHeight_2).attr('width', width).attr('height', commitHeight);
@@ -114,9 +118,10 @@
     return $(window).scroll($.throttle(100, function(e) {
       var graphTop;
       graphTop = $(e.target).scrollTop() - top;
-      if (graphTop > 0) {
-        return d3.selectAll("text.name").transition().attr('x', graphTop);
+      if (graphTop < 0) {
+        graphTop = 0;
       }
+      return d3.selectAll("text.name").transition().attr('x', graphTop + 10);
     }));
   });
 }).call(this);
