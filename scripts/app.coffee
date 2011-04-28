@@ -171,5 +171,6 @@ d3.json "/commits.json", (data) ->
 
   $(window).scroll $.throttle 100, (e) ->
       graphTop = $(e.target).scrollTop()-top
-      if graphTop > 0
-        d3.selectAll("text.name").transition().attr('x', graphTop)
+      graphTop = 0 if graphTop < 0
+      console.log graphTop
+      d3.selectAll("text.name").transition().attr('x', graphTop+10)
