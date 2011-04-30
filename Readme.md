@@ -21,8 +21,19 @@ via npm
 
 ## run it
 
-Run with `node app.js`
+Run with `bin/gitface`. You can symlink this into your path.
+
+### Start the server
+
+    $ gitface serve
+
+### View your repo using gitface (OSX only)
+
+    $ cd /path/to/your/repo
+    $ gitface
+
+This opens your browser to the right url.
 
 ## problems
 
-Its hard coded to one repo and my team at the moment.
+Its hard coded to my team at the moment.
