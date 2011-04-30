@@ -1,5 +1,5 @@
 (function() {
-  d3.json("/commits.json", function(data) {
+  d3.json("/commits.json?root=" + window.gitRoot, function(data) {
     var commit, commitHeight, commitHeight_2, commits, committerReverseIndex, committers, dateToString, graph, graphWidth, height, laneWidth, laneWidth_2, lanes, links, margin, nameTrough, names, now, radius, top, vis, width, x, y, _i, _ref, _results;
     margin = 10;
     nameTrough = 50;
