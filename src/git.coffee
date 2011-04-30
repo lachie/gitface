@@ -172,7 +172,33 @@ module.exports.getHistoryWithRefs = (outerCallback) ->
   ]
 
 
+module.exports.dotGit = (cwd, callback) ->
+  unless callback?
+    callback = cwd
+    cwd = process.cwd()
+
+  args = ["rev-parse", "--git-dir"]
+  git = child_process.spawn "git", args,
+    cwd: cwd
+
+  gitPath = ""
+  error = ""
+
+  git.stdout.on 'data', (data) ->
+    gitPath += data.toString()
+
+  git.stderr.on 'data', (data) ->
+    error += data.toString()
+
+  git.on 'exit', (code) ->
+    if code == 0
+      callback?( null, path.resolve(cwd, gitPath) )
+    else
+      callback?( "in #{cwd}\n#{error}" )
+
+
 unless module.parent?
-  module.exports.getHistoryWithRefs limit: 100, (data) ->
+  module.exports.dotGit "#{process.env['HOME']}/dev/plus2", (err, data) ->
+    console.log "err", err
     console.log "data", data
 
