@@ -71,7 +71,9 @@ d3.json "/commits.json?root=#{window.gitRoot}", (data) ->
   commitHeight = x(2) - x(1)
   commitHeight_2 = commitHeight / 2
 
-  radius = 3
+
+  maxChanges = 0
+  minChanges = 9999
 
   links = []
   commits = vis.selectAll("g.commit")
@@ -79,6 +81,14 @@ d3.json "/commits.json?root=#{window.gitRoot}", (data) ->
               .enter().append("svg:g")
 
             .each( (d,i) ->
+              if s = d.summary
+                d.changes = (s.insertions ? 0) + (s.deletions ? 0)
+              else
+                d.changes = 0
+
+              maxChanges = Math.max( maxChanges, d.changes )
+              minChanges = Math.min( minChanges, d.changes )
+
               from = data.commitShaIndex[ d.sha ]
 
               for sha in d.parents
@@ -107,6 +117,7 @@ d3.json "/commits.json?root=#{window.gitRoot}", (data) ->
               $("#hi-#{i}").attr('visibility', 'hidden')
             )
 
+  changeRadius = d3.scale.linear().domain([minChanges, maxChanges]).range([3, 10])
 
   commit = commits.append('svg:g')
              .attr('transform', (d, i) -> "translate(#{x(committerReverseIndex[d.author])},0)") #"
@@ -116,7 +127,7 @@ d3.json "/commits.json?root=#{window.gitRoot}", (data) ->
            .attr('fill','none')
            .attr("cx", 0)
            .attr("cy", 0)
-           .attr("r"  , radius)
+           .attr("r"  , (d,i) -> changeRadius(d.changes))
 
   commit.append('svg:text')
         .attr('alignment-baseline', 'middle')
