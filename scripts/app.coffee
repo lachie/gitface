@@ -1,4 +1,4 @@
-d3.json "/commits.json", (data) ->
+d3.json "/commits.json?root=#{window.gitRoot}", (data) ->
   margin = 10
   nameTrough = 50
 

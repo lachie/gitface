@@ -2,15 +2,16 @@ child_process = require('child_process')
 {LogBuffer} = require('./log_buffer')
 _ = require('underscore')
 {waterfall} = require('async')
+path = require('path')
 
 
-module.exports.getHistory = getHistory = (callback) ->
+module.exports.getHistory = getHistory = (root, callback) ->
 
   if _.isFunction callback
     options = {}
   else
     options = callback
-    callback = arguments[1]
+    callback = arguments[2]
 
   format = "--pretty=format:%H\01%e\01%aN\01%cN\01%s\01%P\01%at"
 
@@ -22,7 +23,7 @@ module.exports.getHistory = getHistory = (callback) ->
   # args.push 'HEAD'
 
   git = child_process.spawn "git", args,
-    cwd: "#{process.env['HOME']}/dev/plus2/davidson"
+    cwd: root
 
   nameMap =
     'Lachie Cox'              : 'lachie',
@@ -91,18 +92,18 @@ module.exports.getHistory = getHistory = (callback) ->
 
 
 
-module.exports.getRefs = getRefs = (callback) ->
+module.exports.getRefs = getRefs = (root, callback) ->
 
   if _.isFunction callback
     options = {}
   else
     options = callback
-    callback = arguments[1]
+    callback = arguments[2]
 
   args = ['show-ref', '--dereference']
 
   git = child_process.spawn "git", args,
-    cwd: "#{process.env['HOME']}/dev/plus2/davidson"
+    cwd: root
 
   refs = {}
   currentKey = null
@@ -149,22 +150,22 @@ module.exports.getRefs = getRefs = (callback) ->
     callback?( {refs: refs}, code == 0 )
 
 
-module.exports.getHistoryWithRefs = (outerCallback) ->
+module.exports.getHistoryWithRefs = (root, outerCallback) ->
   if _.isFunction outerCallback
     options = {}
   else
     options = outerCallback
-    outerCallback = arguments[1]
+    outerCallback = arguments[2]
 
   waterfall [
     (callback) ->
-      getRefs (data, err) ->
+      getRefs root, (data, err) ->
         callback(null, data)
 
     (data, callback) ->
       historyOptions = refs: data.refs, limit: options.limit
 
-      getHistory historyOptions, (data, err) ->
+      getHistory root, historyOptions, (data, err) ->
         callback(null, data)
 
     (data, callback) ->

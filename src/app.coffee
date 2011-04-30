@@ -26,15 +26,18 @@ app.configure 'production', ->
 
 # Routes
 
-app.get '/', (req, res) ->
-  getHistoryWithRefs limit: 100, (history, err) ->
+app.get '/r', (req, res) ->
+  getHistoryWithRefs req.query.root, limit: 100, (history, err) ->
     res.render 'index'
-      title: "hix"
+      title: "gitface"
+      gitRoot: req.query.root
       commits: history.commits
       committers: history.committers
 
+app.get '/', (req, res) ->
+
 app.get '/commits.json', (req, res) ->
-  getHistoryWithRefs limit: 100, (history, err) ->
+  getHistoryWithRefs req.query.root, limit: 100, (history, err) ->
     res.send(history)
 
 # Only listen on $ node app.js
