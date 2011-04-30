@@ -1,6 +1,6 @@
 (function() {
   d3.json("/commits.json?root=" + window.gitRoot, function(data) {
-    var commit, commitHeight, commitHeight_2, commits, committerReverseIndex, committers, dateToString, graph, graphWidth, height, laneWidth, laneWidth_2, lanes, links, margin, nameTrough, names, now, radius, top, vis, width, x, y, _i, _ref, _results;
+    var changeRadius, commit, commitHeight, commitHeight_2, commits, committerReverseIndex, committers, dateToString, graph, graphWidth, height, laneWidth, laneWidth_2, lanes, links, margin, maxChanges, minChanges, nameTrough, names, now, top, vis, width, x, y, _i, _ref, _results;
     margin = 10;
     nameTrough = 50;
     width = $(window).width() - margin * 2;
@@ -46,15 +46,23 @@
     }).attr('alignment-baseline', 'middle').attr('transform', 'rotate(90)');
     commitHeight = x(2) - x(1);
     commitHeight_2 = commitHeight / 2;
-    radius = 3;
+    maxChanges = 0;
+    minChanges = 9999;
     links = [];
     commits = vis.selectAll("g.commit").data(data.commits).enter().append("svg:g").each(function(d, i) {
-      var from, link, sha, to, _i, _len, _ref, _results;
+      var from, link, s, sha, to, _i, _len, _ref, _ref2, _ref3, _results;
+      if (s = d.summary) {
+        d.changes = ((_ref = s.insertions) != null ? _ref : 0) + ((_ref2 = s.deletions) != null ? _ref2 : 0);
+      } else {
+        d.changes = 0;
+      }
+      maxChanges = Math.max(maxChanges, d.changes);
+      minChanges = Math.min(minChanges, d.changes);
       from = data.commitShaIndex[d.sha];
-      _ref = d.parents;
+      _ref3 = d.parents;
       _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        sha = _ref[_i];
+      for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+        sha = _ref3[_i];
         link = {
           x1: committerReverseIndex[from.author],
           y1: from.index
@@ -74,10 +82,13 @@
       $("#lane-" + d.author + " rect").attr('fill', 'black');
       return $("#hi-" + i).attr('visibility', 'hidden');
     });
+    changeRadius = d3.scale.linear().domain([minChanges, maxChanges]).range([3, 10]);
     commit = commits.append('svg:g').attr('transform', function(d, i) {
       return "translate(" + (x(committerReverseIndex[d.author])) + ",0)";
     });
-    commit.append('svg:circle').attr('stroke', 'black').attr('fill', 'none').attr("cx", 0).attr("cy", 0).attr("r", radius);
+    commit.append('svg:circle').attr('stroke', 'black').attr('fill', 'none').attr("cx", 0).attr("cy", 0).attr("r", function(d, i) {
+      return changeRadius(d.changes);
+    });
     commit.append('svg:text').attr('alignment-baseline', 'middle').attr('x', 10).attr('font-size', '75%').attr('opacity', 0.5).attr('transform', 'rotate(30)').text(function(d, i) {
       return _.map(d.refs, function(ref) {
         return ref.ref;
