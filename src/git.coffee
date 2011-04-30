@@ -5,6 +5,16 @@ _ = require('underscore')
 path = require('path')
 
 
+# 1 files changed, 0 insertions(+), 5 deletions(-)
+commitSummaryRe = /^\s*(\d+) files changed, (\d+) insertions\(\+\), (\d+) deletions\(-\)\s*$/
+parseCommitSummary = (summary) ->
+  if m = summary?.match(commitSummaryRe)
+    files     : parseInt(m[1]),
+    insertions: parseInt(m[2]),
+    deletions : parseInt(m[3])
+  else
+    {}
+
 module.exports.getHistory = getHistory = (root, callback) ->
 
   if _.isFunction callback
@@ -13,9 +23,9 @@ module.exports.getHistory = getHistory = (root, callback) ->
     options = callback
     callback = arguments[2]
 
-  format = "--pretty=format:%H\01%e\01%aN\01%cN\01%s\01%P\01%at"
+  format = "--pretty=format:%H\01%e\01%aN\01%aE\01%cN\01%cE\01%s\01%P\01%at"
 
-  args = [ 'log', '--date-order', '-z', format, '--children', '--all' ]
+  args = [ 'log', '--date-order', '-z', format, '--children', '--all', '--shortstat' ]
 
   if options.limit
     args.push "-#{options.limit}"
@@ -25,21 +35,9 @@ module.exports.getHistory = getHistory = (root, callback) ->
   git = child_process.spawn "git", args,
     cwd: root
 
-  nameMap =
-    'Lachie Cox'              : 'lachie',
-    'Ben Askins'              : 'bena',
-    'Elle Meredith'           : 'elle',
-    'Cameron Barrie'          : 'cam',
-    'Glenn Davy'              : 'glenn',
-    benwebster                : 'benw',
-    'Dylan Fogarty-MacDonald' : 'dylan',
-    lachie                    : 'lachie',
-    'Brett Goulder'           : 'bgoulder',
-    'Matt Allen'              : 'matt',
-    mattallen                 : 'matt',
-    DylanFM                   : 'dylan'
 
   committers = {}
+  committerEmails = {}
   commitList = []
   commitIndex = 0
 
@@ -58,19 +56,33 @@ module.exports.getHistory = getHistory = (root, callback) ->
           commit.refs = refs[commit.sha]
       when 1
         commit.encoding = data
-      when 2
-        commit.author = author = nameMap[ data ]
-        committers[author] ||= 0
-        committers[author] +=  1
 
+      # author
+      when 2
+        commit.author = data
+        committers[data] ||= 0
+        committers[data] +=  1
       when 3
-        commit.comitter = data
+        commit.authorEmail = data
+
+      # comitter
       when 4
-        commit.subject = data
+        commit.comitter = data
       when 5
-        commit.parents = data.split(/\s+/)
+        committerEmails[data] ||= 0
+        committerEmails[data] +=  1
+
+        commit.comitterEmail = data
+
       when 6
-        commit.tv = parseInt(data)
+        commit.subject = data
+      when 7
+        commit.parents = data.split(/\s+/)
+      when 8
+        parts = data.split("\n")
+
+        commit.tv = parseInt(parts.shift())
+        commit.summary = parseCommitSummary(parts.shift())
 
   logbuffer.on 'record', (i) ->
     commit = commitList[commitIndex]
@@ -86,7 +98,12 @@ module.exports.getHistory = getHistory = (root, callback) ->
 
   git.on 'exit', (code) ->
     logbuffer.finish()
-    callback?( {commits: commitList, committers: committers, commitShaIndex: commitReverseIndex}, code == 0 )
+    callback?({
+      commits: commitList
+      committers: committers
+      committerEmails: committerEmails
+      commitShaIndex: commitReverseIndex
+     }, code == 0 )
 
 
 
@@ -199,7 +216,7 @@ module.exports.dotGit = (cwd, callback) ->
 
 
 unless module.parent?
-  module.exports.dotGit "#{process.env['HOME']}/dev/plus2", (err, data) ->
+  module.exports.getHistory "#{process.env['HOME']}/dev/plus2/davidson", {limit: 100}, (err, data) ->
     console.log "err", err
     console.log "data", data
 
