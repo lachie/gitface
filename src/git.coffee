@@ -58,6 +58,8 @@ module.exports.getHistory = getHistory = (root, callback) ->
   logbuffer = new LogBuffer
 
   logbuffer.on 'field', (data, i) ->
+    # console.log i, data
+
     commit = commitList[commitIndex] ||= {}
     switch i
       when 0
@@ -236,6 +238,19 @@ module.exports.bidirectionalHistory = bidirectionalHistory = (root, outerCallbac
 
     #console.log graph
     outerCallback result, ok
+
+
+# Compress history.
+module.exports.abbreviatedHistory = (root, outerCallback) ->
+  if _.isFunction outerCallback
+    options = {}
+  else
+    options = outerCallback
+    outerCallback = arguments[2]
+
+
+  bidirectionalHistory root, options, (result, ok) ->
+
 
 
 module.exports.dotGit = (cwd, callback) ->
