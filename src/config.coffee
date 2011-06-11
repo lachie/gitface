@@ -7,8 +7,8 @@ module.exports = class Config
   @evalConfig: (path, callback) ->
     fs.readFile path, 'utf8', (err, data) ->
       throw err if err
-      wrapped = "(function() { return #{data}\n})()"
-      callback null, eval(wrapped)
+      config = new Function( "return #{data}" )()
+      callback null, config
 
 
   @loadUserConfig: (callback) ->
