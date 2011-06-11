@@ -1,6 +1,7 @@
 git = require('./git')
 Config = require('./config')
 {exec} = require('child_process')
+util = require 'util'
 
 
 serve = (cfg) ->
@@ -15,14 +16,24 @@ open = (cfg) ->
     exec "open #{cfg.repoUrl(root)}"
 
 
+dump = (cfg) ->
+  git.dotGit (err, root) ->
+    throw err if err?
+
+    git.abbreviatedHistory root, {limit: 100}, (commits, ok) ->
+      console.log util.inspect( commits, false, 3 )
+
+
 Config.getUserConfig (err, cfg) ->
-  throw err if err
+  throw err if err?
 
   args = process.argv.slice(2)
 
   switch args.pop()
     when 'serve'
       serve(cfg)
+    when 'dump'
+      dump(cfg)
     else
       open(cfg)
 
