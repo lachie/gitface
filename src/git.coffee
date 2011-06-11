@@ -23,6 +23,17 @@ parseRefs = (summary) ->
   summary.trim()[1..-2].split(/,\s*/)
 
 
+class History
+  constructor: ->
+    @committers      = {}
+    @committerEmails = {}
+    @commits         = []
+
+    @commitLookup   = {}
+    @commitShaIndex = {}
+
+
+
 # get basic history from `git log`
 module.exports.getHistory = getHistory = (root, callback) ->
   if _.isFunction callback
@@ -45,13 +56,9 @@ module.exports.getHistory = getHistory = (root, callback) ->
   git = child_process.spawn "git", args,
     cwd: root
 
-
-  committers = {}
-  committerEmails = {}
-  commitList = []
+  h = new History
+  console.log h
   commitIndex = 0
-
-  commitReverseIndex = {}
 
   refs = options.refs
 
@@ -60,20 +67,23 @@ module.exports.getHistory = getHistory = (root, callback) ->
   logbuffer.on 'field', (data, i) ->
     # console.log i, data
 
-    commit = commitList[commitIndex] ||= {}
+    commit = h.commits[commitIndex] ||= {}
     switch i
       when 0
+        h.commitLookup[data] = commit
         commit.sha = data
+
         if refs
           commit.refs = refs[commit.sha]
+
       when 1
         commit.encoding = data
 
       # author
       when 2
         commit.author = data
-        committers[data] ||= 0
-        committers[data] +=  1
+        h.committers[data] ||= 0
+        h.committers[data] +=  1
       when 3
         commit.authorEmail = data
 
@@ -81,8 +91,8 @@ module.exports.getHistory = getHistory = (root, callback) ->
       when 4
         commit.comitter = data
       when 5
-        committerEmails[data] ||= 0
-        committerEmails[data] +=  1
+        h.committerEmails[data] ||= 0
+        h.committerEmails[data] +=  1
 
         commit.comitterEmail = data
 
@@ -100,8 +110,8 @@ module.exports.getHistory = getHistory = (root, callback) ->
         commit.summary = parseCommitSummary(data)
 
   logbuffer.on 'record', (i) ->
-    commit = commitList[commitIndex]
-    commitReverseIndex[commit.sha] = index: commitIndex, author: commit.author
+    commit = h.commits[commitIndex]
+    h.commitShaIndex[commit.sha] = index: commitIndex, author: commit.author
 
     commitIndex += 1
 
@@ -113,12 +123,7 @@ module.exports.getHistory = getHistory = (root, callback) ->
 
   git.on 'exit', (code) ->
     logbuffer.finish()
-    callback?({
-      commits: commitList
-      committers: committers
-      committerEmails: committerEmails
-      commitShaIndex: commitReverseIndex
-     }, code == 0 )
+    callback?(h, code == 0 )
 
 
 
@@ -214,21 +219,19 @@ module.exports.bidirectionalHistory = bidirectionalHistory = (root, outerCallbac
     options = outerCallback
     outerCallback = arguments[2]
 
-  getHistory root, options, (result, ok) ->
+  getHistory root, options, (history, ok) ->
 
-    for commit in result.commits
+    for commit in history.commits
       commit.children ||= []
 
       for parent in commit.parents
-        parentIndex = result.commitShaIndex[parent]
-        if parentIndex
-          g = result.commits[parentIndex.index].children ||= []
-          g.push commit.sha
+        parentCommit = history.commitLookup[parent]
+        if parentCommit
+          c = parentCommit.children ||= []
+          c.push commit.sha
 
 
-    for sha, {index} of result.commitShaIndex
-      commit = result.commits[index]
-
+    for commit in history.commits
       if commit.parents.length > 1
         commit.type = 'merge'
       else if commit.children.length == 0
@@ -237,7 +240,7 @@ module.exports.bidirectionalHistory = bidirectionalHistory = (root, outerCallbac
         commit.type = 'commit'
 
     #console.log graph
-    outerCallback result, ok
+    outerCallback history, ok
 
 
 # Compress history.
