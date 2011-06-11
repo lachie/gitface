@@ -243,6 +243,12 @@ module.exports.bidirectionalHistory = bidirectionalHistory = (root, outerCallbac
     outerCallback history, ok
 
 
+walkCommits = (seenCommits, commit, history)
+  if seenCommits[commit.sha]
+    return
+  seenCommits[commit.sha] = true
+
+
 # Compress history.
 module.exports.abbreviatedHistory = (root, outerCallback) ->
   if _.isFunction outerCallback
@@ -252,7 +258,11 @@ module.exports.abbreviatedHistory = (root, outerCallback) ->
     outerCallback = arguments[2]
 
 
-  bidirectionalHistory root, options, (result, ok) ->
+  bidirectionalHistory root, options, (history, ok) ->
+    seenCommits = {}
+    for commit of history.commits
+      if commit.type == 'tip'
+        walkCommits( seenCommits, commit, history )
 
 
 
