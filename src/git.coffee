@@ -3,12 +3,14 @@ child_process = require('child_process')
 _ = require('underscore')
 {waterfall} = require('async')
 path = require('path')
+util = require 'util'
+
 
 
 # 1 files changed, 0 insertions(+), 5 deletions(-)
 commitSummaryRe = /^\s*(\d+) files changed, (\d+) insertions\(\+\), (\d+) deletions\(-\)\s*$/
 parseCommitSummary = (summary) ->
-  if m = summary?.match(commitSummaryRe)
+  if m = summary?.trim().match(commitSummaryRe)
     files     : parseInt(m[1]),
     insertions: parseInt(m[2]),
     deletions : parseInt(m[3])
@@ -176,6 +178,7 @@ module.exports.getRefs = getRefs = (root, callback) ->
     callback?( {refs: refs}, code == 0 )
 
 
+# Associate history with refs
 module.exports.getHistoryWithRefs = (root, outerCallback) ->
   if _.isFunction outerCallback
     options = {}
