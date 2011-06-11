@@ -8,9 +8,10 @@ d3.json "/commits.json?root=#{window.gitRoot}", (data) ->
 
   committerReverseIndex = {}
 
+  # Schwarzian transform sorting committers by number of commits
   committers = _.map( data.committers, (count, name) -> [count, name] )
   committers = _.sortBy( committers  , (c) -> -c[0] )
-  committers = _.map(committers     , (c,i) -> committerReverseIndex[c[1]] = i; c[1])
+  committers = _.map(committers      , (c,i) -> committerReverseIndex[c[1]] = i; c[1] )
 
   x = d3.scale.ordinal().domain([0...committers.length  ]).rangeBands([0, graphWidth], .2)
   y = d3.scale.linear().domain([0,data.commits.length+1 ]).range([nameTrough,height+nameTrough])
@@ -117,7 +118,7 @@ d3.json "/commits.json?root=#{window.gitRoot}", (data) ->
               $("#hi-#{i}").attr('visibility', 'hidden')
             )
 
-  changeRadius = d3.scale.linear().domain([minChanges, maxChanges]).range([3, 10])
+  changeRadius = d3.scale.linear().domain([minChanges, maxChanges]).range([2, 10])
 
   commit = commits.append('svg:g')
              .attr('transform', (d, i) -> "translate(#{x(committerReverseIndex[d.author])},0)") #"
