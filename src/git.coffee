@@ -15,17 +15,25 @@ parseCommitSummary = (summary) ->
   else
     {}
 
-module.exports.getHistory = getHistory = (root, callback) ->
 
+parseRefs = (summary) ->
+  return [] unless summary
+  summary.trim()[1..-2].split(/,\s*/)
+
+
+# get basic history from `git log`
+module.exports.getHistory = getHistory = (root, callback) ->
   if _.isFunction callback
     options = {}
   else
     options = callback
     callback = arguments[2]
 
-  format = "--pretty=format:%H\01%e\01%aN\01%aE\01%cN\01%cE\01%s\01%P\01%at"
+  root = root.trim()
 
-  args = [ 'log', '--date-order', '-z', format, '--children', '--all', '--shortstat' ]
+  format = '--pretty=format:%H\01%e\01%aN\01%aE\01%cN\01%cE\01%s\01%P\01%at\01%d\01'
+
+  args = [ 'log', '--date-order', '-z', format, '--parents', '--all', '--shortstat' ]
 
   if options.limit
     args.push "-#{options.limit}"
@@ -79,10 +87,13 @@ module.exports.getHistory = getHistory = (root, callback) ->
       when 7
         commit.parents = data.split(/\s+/)
       when 8
-        parts = data.split("\n")
+        commit.tv = parseInt(data)
 
-        commit.tv = parseInt(parts.shift())
-        commit.summary = parseCommitSummary(parts.shift())
+      when 9
+        commit.refLabels = parseRefs(data)
+
+      when 10
+        commit.summary = parseCommitSummary(data)
 
   logbuffer.on 'record', (i) ->
     commit = commitList[commitIndex]
@@ -104,8 +115,6 @@ module.exports.getHistory = getHistory = (root, callback) ->
       committerEmails: committerEmails
       commitShaIndex: commitReverseIndex
      }, code == 0 )
-
-
 
 
 
