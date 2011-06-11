@@ -20,7 +20,7 @@ dump = (cfg) ->
   git.dotGit (err, root) ->
     throw err if err?
 
-    git.abbreviatedHistory root, {limit: 100}, (commits, ok) ->
+    git.bidirectionalHistory root, {limit: 100}, (commits, ok) ->
       console.log util.inspect( commits, false, 3 )
 
 
