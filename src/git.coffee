@@ -199,6 +199,42 @@ module.exports.getHistoryWithRefs = (root, outerCallback) ->
   ]
 
 
+# establish bidirectional history (within the corpus of commits we have)
+# Internally, git stores a commit's parents. We're using the implicit structure to build explicit links to a commit's child commits.
+#
+module.exports.bidirectionalHistory = bidirectionalHistory = (root, outerCallback) ->
+  if _.isFunction outerCallback
+    options = {}
+  else
+    options = outerCallback
+    outerCallback = arguments[2]
+
+  getHistory root, options, (result, ok) ->
+
+    for commit in result.commits
+      commit.children ||= []
+
+      for parent in commit.parents
+        parentIndex = result.commitShaIndex[parent]
+        if parentIndex
+          g = result.commits[parentIndex.index].children ||= []
+          g.push commit.sha
+
+
+    for sha, {index} of result.commitShaIndex
+      commit = result.commits[index]
+
+      if commit.parents.length > 1
+        commit.type = 'merge'
+      else if commit.children.length == 0
+        commit.type = 'tip'
+      else
+        commit.type = 'commit'
+
+    #console.log graph
+    outerCallback result, ok
+
+
 module.exports.dotGit = (cwd, callback) ->
   unless callback?
     callback = cwd
