@@ -82,7 +82,7 @@
       $("#lane-" + d.author + " rect").attr('fill', 'black');
       return $("#hi-" + i).attr('visibility', 'hidden');
     });
-    changeRadius = d3.scale.linear().domain([minChanges, maxChanges]).range([3, 10]);
+    changeRadius = d3.scale.linear().domain([minChanges, maxChanges]).range([2, 10]);
     commit = commits.append('svg:g').attr('transform', function(d, i) {
       return "translate(" + (x(committerReverseIndex[d.author])) + ",0)";
     });
