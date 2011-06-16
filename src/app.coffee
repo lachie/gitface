@@ -5,7 +5,7 @@ express = require('express')
 app = module.exports = express.createServer()
 
 
-{getHistoryWithRefs, getHistory} = require('./git')
+{getHistoryWithRefs, getHistory, abbreviatedHistory} = require('./git')
 
 # Configuration
 
@@ -31,13 +31,28 @@ app.get '/r', (req, res) ->
     res.render 'index'
       title: "gitface"
       gitRoot: req.query.root
+      script: "app"
       commits: history.commits
       committers: history.committers
+
+
+app.get '/a', (req, res) ->
+  res.render 'abbrev'
+    title: "gitface"
+    script: "abbrev"
+    gitRoot: req.query.root
+
 
 app.get '/', (req, res) ->
 
 app.get '/commits.json', (req, res) ->
   getHistoryWithRefs req.query.root, limit: 100, (history, err) ->
+    res.send(history)
+
+
+app.get '/abbrev.json', (req, res) ->
+  console.log "abbrev", req.query.root
+  abbreviatedHistory req.query.root, limit: 1000, (history, err) ->
     res.send(history)
 
 # Only listen on $ node app.js

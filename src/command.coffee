@@ -2,6 +2,7 @@ git = require('./git')
 Config = require('./config')
 {exec} = require('child_process')
 util = require 'util'
+_ = require 'underscore'
 
 
 serve = (cfg) ->
@@ -20,8 +21,8 @@ dump = (cfg) ->
   git.dotGit (err, root) ->
     throw err if err?
 
-    git.bidirectionalHistory root, {limit: 100}, (commits, ok) ->
-      console.log util.inspect( commits, false, 3 )
+    git.abbreviatedHistory root, {limit: 100}, (history, ok) ->
+      console.log history.commits
 
 
 Config.getUserConfig (err, cfg) ->

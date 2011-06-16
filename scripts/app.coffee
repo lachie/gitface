@@ -121,7 +121,7 @@ d3.json "/commits.json?root=#{window.gitRoot}", (data) ->
   changeRadius = d3.scale.linear().domain([minChanges, maxChanges]).range([2, 10])
 
   commit = commits.append('svg:g')
-             .attr('transform', (d, i) -> "translate(#{x(committerReverseIndex[d.author])},0)") #"
+                  .attr('transform', (d, i) -> "translate(#{x(committerReverseIndex[d.author])},0)") #"
 
   commit.append('svg:circle')
            .attr('stroke','black')

@@ -57,7 +57,6 @@ module.exports.getHistory = getHistory = (root, callback) ->
     cwd: root
 
   h = new History
-  console.log h
   commitIndex = 0
 
   refs = options.refs
@@ -224,10 +223,9 @@ module.exports.bidirectionalHistory = bidirectionalHistory = (root, outerCallbac
     for commit in history.commits
       commit.children ||= []
 
-      for parent in commit.parents
-        parentCommit = history.commitLookup[parent]
-        if parentCommit
-          c = parentCommit.children ||= []
+      for parentSha in commit.parents
+        if parent = history.commitLookup[parentSha]
+          c = parent.children ||= []
           c.push commit.sha
 
 
@@ -236,6 +234,8 @@ module.exports.bidirectionalHistory = bidirectionalHistory = (root, outerCallbac
         commit.type = 'merge'
       else if commit.children.length == 0
         commit.type = 'tip'
+      else if commit.children.length > 1
+        commit.type = 'fork'
       else
         commit.type = 'commit'
 
@@ -243,10 +243,31 @@ module.exports.bidirectionalHistory = bidirectionalHistory = (root, outerCallbac
     outerCallback history, ok
 
 
-walkCommits = (seenCommits, commit, history)
-  if seenCommits[commit.sha]
-    return
-  seenCommits[commit.sha] = true
+
+rollupCommits = (commit, history) ->
+  for parentSha in commit.parents
+    if parent = history.commitLookup[parentSha]
+      if commit.type == 'commit' && parent.type == 'commit'
+        commit.contains     ||= []
+        commit.contains.push parent.sha
+
+        # XXX rewrite children array?
+
+        commit.containsRefs ||= [ commit.refLabels ]
+        commit.containsRefs.push parent.refLabels
+
+        commit.parents  = parent.parents
+        parent.squashed = true
+
+        rollupCommits( commit, history )
+
+
+writeTip = (tip, history, commit) ->
+  commit?.tipSha ?= tip.sha
+
+  for parentSha in commit.parents
+    if parent = history.commitLookup[parentSha]
+      writeTip( tip, history, parent )
 
 
 # Compress history.
@@ -260,9 +281,22 @@ module.exports.abbreviatedHistory = (root, outerCallback) ->
 
   bidirectionalHistory root, options, (history, ok) ->
     seenCommits = {}
-    for commit of history.commits
-      if commit.type == 'tip'
-        walkCommits( seenCommits, commit, history )
+
+    for commit in history.commits
+      rollupCommits(commit, history)
+
+    newCommits = []
+
+    for commit in history.commits when not commit.squashed
+      commit.containsRefs = _.flatten(commit.containsRefs)
+      newCommits.push commit
+
+    for tip in history.commits when tip.type == 'tip'
+      writeTip(tip, history, tip)
+
+    history.commits = newCommits
+
+    outerCallback( history, ok )
 
 
 
